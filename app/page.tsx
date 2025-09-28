@@ -1,103 +1,94 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+import { InsuranceEntry, User } from "@/lib/types";
+import { UserSelector } from "@/components/UserSelector";
+import { InsuranceManager } from "@/components/InsuranceManager";
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  // Global state for all users and all entries
+  const [users, setUsers] = useState<User[]>([]);
+  const [entries, setEntries] = useState<InsuranceEntry[]>([]);
+  const [activeUserId, setActiveUserId] = useState<string | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  // Find the currently active user and their entries
+  const activeUser = users.find(user => user.id === activeUserId) || null;
+  const activeUserEntries = entries.filter(entry => entry.userId === activeUserId);
+
+  // --- User Management ---
+  const addUser = (name: string) => {
+    if (name && !users.find(u => u.name.toLowerCase() === name.toLowerCase())) {
+      const newUser: User = { id: crypto.randomUUID(), name, copay: 0 };
+      setUsers([...users, newUser]);
+      setActiveUserId(newUser.id);
+    }
+  };
+
+  // --- Entry Management ---
+  const addEntry = (newEntryData: Omit<InsuranceEntry, 'id' | 'userId' | 'amount'>) => {
+    if (!activeUserId) return;
+
+    const finalAmount = Math.min(
+      newEntryData.deductible + newEntryData.coInsAmount,
+      newEntryData.allowed
+    );
+
+    const newEntry: InsuranceEntry = {
+      ...newEntryData,
+      id: crypto.randomUUID(),
+      userId: activeUserId,
+      amount: finalAmount,
+    };
+    setEntries([...entries, newEntry]);
+  };
+
+  const updateEntry = (updatedEntry: InsuranceEntry) => {
+    setEntries(entries.map(entry => entry.id === updatedEntry.id ? updatedEntry : entry));
+  };
+  
+  const deleteEntry = (entryId: string) => {
+    setEntries(entries.filter(entry => entry.id !== entryId));
+  };
+  
+  // --- Co-pay Management ---
+  const updateUserCopay = (userId: string, copay: number) => {
+    setUsers(users.map(user => user.id === userId ? { ...user, copay } : user));
+  };
+
+  return (
+    <main className="container mx-auto p-4 md:p-8">
+      <header className="mb-8">
+        <h1 className="text-4xl font-bold tracking-tight">Multi-User Insurance Calculator</h1>
+        <p className="text-muted-foreground mt-2">
+          Manage insurance calculations for multiple patients.
+        </p>
+      </header>
+      
+      <div className="mb-8 max-w-md">
+        <UserSelector 
+          users={users} 
+          activeUserId={activeUserId} 
+          onAddUser={addUser} 
+          onSelectUser={setActiveUserId} 
+        />
+      </div>
+
+      {activeUser ? (
+        <InsuranceManager
+          key={activeUser.id} // Re-mount component when user changes
+          user={activeUser}
+          entries={activeUserEntries}
+          onAddEntry={addEntry}
+          onUpdateEntry={updateEntry}
+          onDeleteEntry={deleteEntry}
+          onUpdateCopay={updateUserCopay}
+        />
+      ) : (
+        <div className="text-center text-muted-foreground border rounded-lg p-12">
+            <h2 className="text-xl font-semibold">Welcome!</h2>
+            <p>Please add or select a user to begin.</p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      )}
+    </main>
   );
 }
