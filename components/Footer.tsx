@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image'; // Import the Image component
 
 const Footer = () => {
   return (
@@ -13,11 +14,15 @@ const Footer = () => {
           
           {/* Logo (Right Side) */}
           <div>
+            {/* The <a> tag is correct here for an external link */}
             <a href="https://credencerm.com/" target="_blank" rel="noopener noreferrer">
-              <img 
+              {/* Use the optimized Image component */}
+              <Image 
                 src="https://credencerm.com/assets/images/logo.png" 
                 alt="Credence RCM Logo" 
-                className="h-8 w-auto" // You can adjust the height (e.g., h-10)
+                width={150} // Specify an appropriate width
+                height={35}  // Specify an appropriate height
+                className="h-8 w-auto" // Tailwind classes control the final display size
               />
             </a>
           </div>
